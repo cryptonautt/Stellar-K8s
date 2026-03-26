@@ -1,15 +1,15 @@
 use std::process::{self, Command};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use chrono::Utc;
 use clap::{Parser, Subcommand};
 use k8s_openapi::api::coordination::v1::Lease;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::MicroTime;
 use kube::api::{Api, ObjectMeta, Patch, PatchParams, PostParams};
-use stellar_k8s::{Error, controller, crd::StellarNode, preflight};
-use tracing::{Level, debug, info, warn};
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use stellar_k8s::{controller, crd::StellarNode, preflight, Error};
+use tracing::{debug, info, warn, Level};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Parser, Debug)]
 #[command(
