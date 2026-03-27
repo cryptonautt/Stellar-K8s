@@ -485,12 +485,12 @@ pub struct PeerLatencyStatus {
 mod tests {
     use super::*;
     use crate::crd::{
-        CrossClusterConfig, CrossClusterMode, ExternalNameConfig, PeerClusterConfig,
-        StellarNode, StellarNodeSpec,
         types::{
-            NodeType, ResourceRequirements, ResourceSpec, RolloutStrategy, StellarNetwork,
-            StorageConfig, StorageMode, RetentionPolicy, PodAntiAffinityStrength,
+            NodeType, PodAntiAffinityStrength, ResourceRequirements, ResourceSpec, RetentionPolicy,
+            RolloutStrategy, StellarNetwork, StorageConfig, StorageMode,
         },
+        CrossClusterConfig, CrossClusterMode, ExternalNameConfig, PeerClusterConfig, StellarNode,
+        StellarNodeSpec,
     };
     use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
 
@@ -623,7 +623,10 @@ mod tests {
         let svc = build_external_name_service(&node, &peer, "svc-name");
         let spec = svc.spec.as_ref().unwrap();
         let ports = spec.ports.as_ref().expect("service must have ports");
-        assert_eq!(ports[0].port, 11625, "default Stellar peer port must be 11625");
+        assert_eq!(
+            ports[0].port, 11625,
+            "default Stellar peer port must be 11625"
+        );
     }
 
     #[test]
@@ -646,7 +649,11 @@ mod tests {
         let peer = make_peer("cluster-b", "203.0.113.20");
 
         let svc = build_external_name_service(&node, &peer, "svc-name");
-        let labels = svc.metadata.labels.as_ref().expect("service must have labels");
+        let labels = svc
+            .metadata
+            .labels
+            .as_ref()
+            .expect("service must have labels");
 
         assert_eq!(
             labels.get("stellar.org/peer-cluster").map(String::as_str),
@@ -689,8 +696,7 @@ mod tests {
         assert!(
             !status.healthy,
             "peer with latency {}ms exceeding threshold {}ms must be unhealthy",
-            latency,
-            threshold
+            latency, threshold
         );
     }
 
@@ -704,7 +710,10 @@ mod tests {
             threshold_ms: threshold,
             healthy: latency <= threshold,
         };
-        assert!(status.healthy, "latency equal to threshold must be considered healthy");
+        assert!(
+            status.healthy,
+            "latency equal to threshold must be considered healthy"
+        );
     }
 
     #[test]
@@ -727,8 +736,7 @@ mod tests {
 
     /// Replicate the percentile index calculation from `measure_peer_latency`.
     fn percentile_index(sample_count: usize, percentile: u8) -> usize {
-        let index =
-            ((percentile as f64 / 100.0) * sample_count as f64).ceil() as usize - 1;
+        let index = ((percentile as f64 / 100.0) * sample_count as f64).ceil() as usize - 1;
         index.min(sample_count - 1)
     }
 
@@ -738,7 +746,10 @@ mod tests {
         let mut samples: Vec<u32> = (10..20).collect(); // [10, 11, ..., 19]
         samples.sort_unstable();
         let idx = percentile_index(samples.len(), 95);
-        assert_eq!(samples[idx], 19, "p95 of 10 samples should be the last (highest) value");
+        assert_eq!(
+            samples[idx], 19,
+            "p95 of 10 samples should be the last (highest) value"
+        );
     }
 
     #[test]
@@ -754,7 +765,10 @@ mod tests {
     fn test_single_sample_always_returned_at_any_percentile() {
         let samples: Vec<u32> = vec![42];
         let idx = percentile_index(samples.len(), 95);
-        assert_eq!(samples[idx], 42, "single sample must always be returned regardless of percentile");
+        assert_eq!(
+            samples[idx], 42,
+            "single sample must always be returned regardless of percentile"
+        );
     }
 
     #[test]
@@ -781,8 +795,14 @@ mod tests {
     fn test_disabled_peer_is_skipped_in_external_name_services() {
         // Verify that disabled peers are not processed.
         let peers = vec![
-            PeerClusterConfig { enabled: false, ..make_peer("cluster-disabled", "10.0.0.1") },
-            PeerClusterConfig { enabled: true, ..make_peer("cluster-enabled", "10.0.0.2") },
+            PeerClusterConfig {
+                enabled: false,
+                ..make_peer("cluster-disabled", "10.0.0.1")
+            },
+            PeerClusterConfig {
+                enabled: true,
+                ..make_peer("cluster-enabled", "10.0.0.2")
+            },
         ];
         let active: Vec<_> = peers.iter().filter(|p| p.enabled).collect();
         assert_eq!(active.len(), 1, "only enabled peers must be processed");

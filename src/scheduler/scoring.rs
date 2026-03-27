@@ -446,7 +446,11 @@ mod tests {
         Node {
             metadata: ObjectMeta {
                 name: Some(name.to_string()),
-                labels: if label_map.is_empty() { None } else { Some(label_map) },
+                labels: if label_map.is_empty() {
+                    None
+                } else {
+                    Some(label_map)
+                },
                 ..Default::default()
             },
             ..Default::default()
@@ -465,8 +469,16 @@ mod tests {
         Pod {
             metadata: ObjectMeta {
                 name: Some(name.to_string()),
-                labels: if label_map.is_empty() { None } else { Some(label_map) },
-                annotations: if annotation_map.is_empty() { None } else { Some(annotation_map) },
+                labels: if label_map.is_empty() {
+                    None
+                } else {
+                    Some(label_map)
+                },
+                annotations: if annotation_map.is_empty() {
+                    None
+                } else {
+                    Some(annotation_map)
+                },
                 ..Default::default()
             },
             ..Default::default()
@@ -478,13 +490,29 @@ mod tests {
     fn quorum_score(candidate: &Node, peers: &[&Node]) -> i64 {
         let mut score: i64 = 0;
         let cname = candidate.metadata.name.as_deref().unwrap_or("");
-        let czone = candidate.metadata.labels.as_ref().and_then(|l| l.get(LABEL_ZONE));
-        let cregion = candidate.metadata.labels.as_ref().and_then(|l| l.get(LABEL_REGION));
+        let czone = candidate
+            .metadata
+            .labels
+            .as_ref()
+            .and_then(|l| l.get(LABEL_ZONE));
+        let cregion = candidate
+            .metadata
+            .labels
+            .as_ref()
+            .and_then(|l| l.get(LABEL_REGION));
 
         for peer in peers {
             let pname = peer.metadata.name.as_deref().unwrap_or("");
-            let pzone = peer.metadata.labels.as_ref().and_then(|l| l.get(LABEL_ZONE));
-            let pregion = peer.metadata.labels.as_ref().and_then(|l| l.get(LABEL_REGION));
+            let pzone = peer
+                .metadata
+                .labels
+                .as_ref()
+                .and_then(|l| l.get(LABEL_ZONE));
+            let pregion = peer
+                .metadata
+                .labels
+                .as_ref()
+                .and_then(|l| l.get(LABEL_REGION));
 
             if cname == pname {
                 score -= 1000;
@@ -543,7 +571,11 @@ VALIDATORS = ["peer-x", "peer-y", "peer-z"]
 VALIDATORS = ["GBVAWJZTFQMQBHZQMKJHZV3KXNXMSLVNYZRTLVZSNKPQRZUVWQXQTVXG", "my-validator"]
 "#;
         let peers = extract_peer_names_from_toml(toml);
-        assert_eq!(peers.len(), 1, "public key starting with 'G' must be excluded");
+        assert_eq!(
+            peers.len(),
+            1,
+            "public key starting with 'G' must be excluded"
+        );
         assert_eq!(peers[0], "my-validator");
     }
 
@@ -624,19 +656,31 @@ threshold = 3"#;
     #[test]
     fn test_region_extracted_from_topology_label() {
         let node = make_node("n", vec![("topology.kubernetes.io/region", "us-west-2")]);
-        assert_eq!(extract_region_from_node(&node), Some("us-west-2".to_string()));
+        assert_eq!(
+            extract_region_from_node(&node),
+            Some("us-west-2".to_string())
+        );
     }
 
     #[test]
     fn test_region_extracted_from_beta_failure_domain_label() {
-        let node = make_node("n", vec![("failure-domain.beta.kubernetes.io/region", "eu-west-1")]);
-        assert_eq!(extract_region_from_node(&node), Some("eu-west-1".to_string()));
+        let node = make_node(
+            "n",
+            vec![("failure-domain.beta.kubernetes.io/region", "eu-west-1")],
+        );
+        assert_eq!(
+            extract_region_from_node(&node),
+            Some("eu-west-1".to_string())
+        );
     }
 
     #[test]
     fn test_region_extracted_from_node_name_containing_aws_region() {
         let node = make_node("ip-10-0-1-1.us-east-1.compute.internal", vec![]);
-        assert_eq!(extract_region_from_node(&node), Some("us-east-1".to_string()));
+        assert_eq!(
+            extract_region_from_node(&node),
+            Some("us-east-1".to_string())
+        );
     }
 
     #[test]
@@ -651,7 +695,10 @@ threshold = 3"#;
             "ip-10-0-1-1.us-east-1.compute.internal",
             vec![("topology.kubernetes.io/region", "eu-central-1")],
         );
-        assert_eq!(extract_region_from_node(&node), Some("eu-central-1".to_string()));
+        assert_eq!(
+            extract_region_from_node(&node),
+            Some("eu-central-1".to_string())
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -670,7 +717,10 @@ threshold = 3"#;
         );
         let candidate_far = make_node(
             "far",
-            vec![(LABEL_REGION, "eu-central-1"), (LABEL_ZONE, "eu-central-1a")],
+            vec![
+                (LABEL_REGION, "eu-central-1"),
+                (LABEL_ZONE, "eu-central-1a"),
+            ],
         );
 
         let score_near = quorum_score(&candidate_near, &[&peer]);
@@ -744,7 +794,10 @@ threshold = 3"#;
         let node = make_node("only-node", vec![]);
         let candidates = vec![&node];
         assert_eq!(
-            candidates.first().copied().map(|n| n.metadata.name.as_deref().unwrap_or("")),
+            candidates
+                .first()
+                .copied()
+                .map(|n| n.metadata.name.as_deref().unwrap_or("")),
             Some("only-node"),
             "single candidate must be selected when no peers exist"
         );
