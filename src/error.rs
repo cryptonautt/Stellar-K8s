@@ -197,7 +197,7 @@ mod tests {
         let our_err = Error::KubeError(kube_serde_err);
 
         // The Display implementation should include the error code prefix
-        let display = format!("{}", our_err);
+        let display = format!("{our_err}");
         assert!(display.contains("[SK8S-001]"));
         assert!(display.contains("Kubernetes API error"));
     }
@@ -207,7 +207,7 @@ mod tests {
         // Test that we can pattern match on KubeError to extract inner error
         let kube_err =
             kube::Error::SerdeError(serde_json::from_str::<serde_json::Value>("y").unwrap_err());
-        let our_err = Error::KubeError(kube_err.clone());
+        let our_err = Error::KubeError(kube_err);
 
         // Verify we can match and extract the inner kube error
         match our_err {

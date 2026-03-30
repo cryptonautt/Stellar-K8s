@@ -161,7 +161,7 @@ impl PruneResult {
         if !self.errors.is_empty() {
             println!("\nErrors encountered:");
             for error in &self.errors {
-                println!("  - {}", error);
+                println!("  - {error}");
             }
         }
 
@@ -186,7 +186,7 @@ fn format_bytes(bytes: u64) -> String {
         b if b >= GB => format!("{:.2} GB", b as f64 / GB as f64),
         b if b >= MB => format!("{:.2} MB", b as f64 / MB as f64),
         b if b >= KB => format!("{:.2} KB", b as f64 / KB as f64),
-        b => format!("{} B", b),
+        b => format!("{b} B"),
     }
 }
 
@@ -229,8 +229,7 @@ impl ArchiveLocation {
             })
         } else {
             Err(Error::ConfigError(format!(
-                "Unsupported archive URL scheme: {}. Must be s3://, gs://, or file://",
-                url
+                "Unsupported archive URL scheme: {url}. Must be s3://, gs://, or file://"
             )))
         }
     }
@@ -303,23 +302,23 @@ async fn scan_local_checkpoints(location: &ArchiveLocation) -> Result<Vec<Checkp
 
 /// Scan a hex directory for checkpoint files
 async fn scan_hex_directory(dir_path: &std::path::Path) -> Result<Vec<Checkpoint>, Error> {
-    use std::path::PathBuf;
     use tokio::fs;
 
     let mut checkpoints = Vec::new();
-    let mut entries = fs::read_dir(dir_path).await?;
+    let mut directories = vec![dir_path.to_path_buf()];
 
-    while let Some(entry) = entries.next_entry().await? {
-        let path = entry.path();
-        if path.is_dir() {
-            // Recurse into nested hex directories
-            let sub_checkpoints = scan_hex_directory(&path).await?;
-            checkpoints.extend(sub_checkpoints);
-        } else if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
-            if filename.starts_with("history-") && filename.ends_with(".xdr.gz") {
-                // Parse checkpoint from filename
-                if let Some(checkpoint) = parse_checkpoint_from_path(&path, filename).await? {
-                    checkpoints.push(checkpoint);
+    while let Some(current_dir) = directories.pop() {
+        let mut entries = fs::read_dir(&current_dir).await?;
+
+        while let Some(entry) = entries.next_entry().await? {
+            let path = entry.path();
+            if path.is_dir() {
+                directories.push(path);
+            } else if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                if filename.starts_with("history-") && filename.ends_with(".xdr.gz") {
+                    if let Some(checkpoint) = parse_checkpoint_from_path(&path, filename).await? {
+                        checkpoints.push(checkpoint);
+                    }
                 }
             }
         }
@@ -333,7 +332,6 @@ async fn parse_checkpoint_from_path(
     path: &std::path::Path,
     filename: &str,
 ) -> Result<Option<Checkpoint>, Error> {
-    use std::path::PathBuf;
     use tokio::fs;
 
     // Filename format: history-{hash}.xdr.gz
@@ -483,7 +481,7 @@ pub async fn execute_prune(
     );
     println!("\nDeleted ledger sequences:");
     for ledger in &deleted_ledgers {
-        println!("  - Ledger {}", ledger);
+        println!("  - Ledger {ledger}");
     }
     println!("\nThis operation CANNOT be undone.");
 
@@ -505,7 +503,7 @@ pub async fn execute_prune(
             async move {
                 let _permit = semaphore.acquire().await.expect("Semaphore acquired");
 
-                match delete_checkpoint(&checkpoint, &location).await {
+                match delete_checkpoint(checkpoint, &location).await {
                     Ok(_) => {
                         debug!("Deleted checkpoint: ledger {}", checkpoint.ledger_seq);
                     }
@@ -522,10 +520,10 @@ pub async fn execute_prune(
 
     delete_stream.collect::<Vec<()>>().await;
 
-    let final_errors = Arc::try_unwrap(errors)
-        .unwrap_or_else(|_| Arc::new(tokio::sync::Mutex::new(Vec::new())))
-        .into_inner()
-        .await;
+    let final_errors = match Arc::try_unwrap(errors) {
+        Ok(mutex) => mutex.into_inner(),
+        Err(errors) => errors.lock().await.clone(),
+    };
 
     let deleted_count = deletable.len() - final_errors.len();
 
@@ -812,10 +810,10 @@ mod tests {
         let checkpoints: Vec<Checkpoint> = (1..=5)
             .map(|i| Checkpoint {
                 ledger_seq: i * 1000,
-                checkpoint_hash: format!("hash{}", i),
+                checkpoint_hash: format!("hash{i}"),
                 timestamp: now - Duration::days(100),
                 size_bytes: 1000,
-                path: format!("/test/{}", i),
+                path: format!("/test/{i}"),
                 is_valid: true,
             })
             .collect();

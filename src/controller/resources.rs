@@ -310,7 +310,7 @@ pub async fn ensure_config_map(
     Ok(())
 }
 
-fn build_config_map(
+pub(crate) fn build_config_map(
     node: &StellarNode,
     quorum_override: Option<crate::controller::vsl::QuorumSet>,
     enable_mtls: bool,
@@ -1504,7 +1504,7 @@ fn derive_worker_threads(node: &StellarNode) -> u32 {
         .or_else(|| parse_cpu_millicores(&node.spec.resources.requests.cpu))
         .unwrap_or(1000);
 
-    let cores = ((millicores + 999) / 1000).clamp(1, 32);
+    let cores = millicores.div_ceil(1000).clamp(1, 32);
     cores.max(1)
 }
 
