@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use futures::io::AsyncBufReadExt;
+use chrono::Utc;
 use futures::StreamExt;
 use k8s_openapi::api::core::v1::{Event, ObjectReference, Pod};
 use kube::{
